@@ -6,7 +6,7 @@
 
     <groupId>dev.mccue</groupId>
     <artifactId>log.alpha</artifactId>
-    <version>0.0.8</version>
+    <version>0.0.1</version>
     <packaging>jar</packaging>
 
     <properties>
