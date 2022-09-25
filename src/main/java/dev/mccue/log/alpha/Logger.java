@@ -81,36 +81,33 @@ public interface Logger {
             List<Log.Entry> entries,
             Supplier<T> code
     ) {
-        return Log.withContext(List.of(), () -> {
-            Log.Span.Outcome outcome = Log.Span.Outcome.Ok.INSTANCE;
-            var start = Instant.now();
-            var localContext = LOCAL_CONTEXT.get();
-            try {
-                LOCAL_CONTEXT.set(new Log.Context.Child.Span(
-                        Thread.currentThread(),
-                        start,
-                        Flake.create(),
-                        entries,
-                        localContext == null ? GLOBAL_CONTEXT.get() : localContext
-                ));
-                return code.get();
-            } catch (Throwable t) {
-                outcome = new Log.Span.Outcome.Error(t);
-                throw t;
-            } finally {
-                LOCAL_CONTEXT.set(localContext);
-                var end = Instant.now();
-                var duration = Duration.between(start, end);
-                var occurrence = new Log.Occurrence.SpanOfTime(start, duration);
-                log(new Log.Span(
-                        outcome,
-                        occurrence,
-                        level,
-                        category,
-                        entries
-                ));
-            }
-        });
+        Log.Span.Outcome outcome = Log.Span.Outcome.Ok.INSTANCE;
+        var start = Instant.now();
+        var localContext = LOCAL_CONTEXT.get();
+        try {
+            LOCAL_CONTEXT.set(new Log.Context.Child.Span(
+                    Thread.currentThread(),
+                    start,
+                    Flake.create(),
+                    localContext == null ? GLOBAL_CONTEXT.get() : localContext
+            ));
+            return code.get();
+        } catch (Throwable t) {
+            outcome = new Log.Span.Outcome.Error(t);
+            throw t;
+        } finally {
+            LOCAL_CONTEXT.set(localContext);
+            var end = Instant.now();
+            var duration = Duration.between(start, end);
+            var occurrence = new Log.Occurrence.SpanOfTime(start, duration);
+            log(new Log.Span(
+                    outcome,
+                    occurrence,
+                    level,
+                    category,
+                    entries
+            ));
+        }
     }
 
     default void span(

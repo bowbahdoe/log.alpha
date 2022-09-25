@@ -220,7 +220,7 @@ public sealed interface Log extends Iterable<Log.Entry> {
      * @param code    The block of code to execute.
      * @see Log#withContext(List, Supplier)
      */
-    static void withContext(List<Entry> entries, Runnable code) throws Exception {
+    static void withContext(List<Entry> entries, Runnable code) {
         withContext(
                 entries,
                 () -> {
@@ -266,9 +266,12 @@ public sealed interface Log extends Iterable<Log.Entry> {
                 if (iter.hasNext()) {
                     return true;
                 } else {
-                    if (ctx instanceof Context.Child childCtx) {
-                        iter = childCtx.entries().iterator();
-                        ctx = childCtx.parent();
+                    if (ctx instanceof Context.Child.Plain plainCtx) {
+                        iter = plainCtx.entries().iterator();
+                        ctx = plainCtx.parent();
+                        return this.hasNext();
+                    } else if (ctx instanceof Context.Child.Span spanCtx) {
+                        ctx = spanCtx.parent();
                         return this.hasNext();
                     } else if (ctx instanceof Context.Global globalCtx) {
                         iter = globalCtx.entries().iterator();
@@ -285,9 +288,12 @@ public sealed interface Log extends Iterable<Log.Entry> {
                 if (iter.hasNext()) {
                     return iter.next();
                 } else {
-                    if (ctx instanceof Context.Child childCtx) {
-                        iter = childCtx.entries().iterator();
-                        ctx = childCtx.parent();
+                    if (ctx instanceof Context.Child.Plain plainCtx) {
+                        iter = plainCtx.entries().iterator();
+                        ctx = plainCtx.parent();
+                        return this.next();
+                    } else if (ctx instanceof Context.Child.Span spanCtx) {
+                        ctx = spanCtx.parent();
                         return this.next();
                     } else if (ctx instanceof Context.Global globalCtx) {
                         iter = globalCtx.entries().iterator();
@@ -333,7 +339,6 @@ public sealed interface Log extends Iterable<Log.Entry> {
         }
 
         sealed interface Child extends Context {
-            List<Entry> entries();
             Context parent();
 
             @Override
@@ -364,20 +369,17 @@ public sealed interface Log extends Iterable<Log.Entry> {
                     Thread thread,
                     Instant startedAt,
                     Flake spanId,
-                    @Override List<Entry> entries,
                     @Override Context parent
             ) implements Child {
                 public Span(
                         Thread thread,
                         Instant startedAt,
                         Flake spanId,
-                        List<Entry> entries,
                         Context parent
                 ) {
                     this.thread = Objects.requireNonNull(thread, "thread must not be null");
                     this.startedAt = Objects.requireNonNull(startedAt, "startedAt must not be null");
                     this.spanId = Objects.requireNonNull(spanId, "spanId must not be null");
-                    this.entries = List.copyOf(Objects.requireNonNull(entries, "entries must not be null"));
                     this.parent = Objects.requireNonNull(parent, "parent must not be null");
                 }
             }
@@ -399,127 +401,123 @@ public sealed interface Log extends Iterable<Log.Entry> {
         }
 
         public static Entry of(String key, String value) {
-            return of(key, value, Value.String::new);
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, boolean value) {
-            return new Entry(key, new Value.Boolean(value));
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, byte value) {
-            return new Entry(key, new Value.Byte(value));
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, char value) {
-            return new Entry(key, new Value.Character(value));
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, short value) {
-            return new Entry(key, new Value.Short(value));
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, int value) {
-            return new Entry(key, new Value.Integer(value));
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, long value) {
-            return new Entry(key, new Value.Long(value));
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, float value) {
-            return new Entry(key, new Value.Double(value));
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, double value) {
-            return new Entry(key, new Value.Double(value));
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, Boolean value) {
-            return of(key, value, Value.Boolean::new);
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, Byte value) {
-            return of(key, value, Value.Byte::new);
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, Character value) {
-            return of(key, value, Value.Character::new);
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, Short value) {
-            return of(key, value, Value.Short::new);
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, Integer value) {
-            return of(key, value, Value.Integer::new);
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, Long value) {
-            return of(key, value, Value.Long::new);
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, Double value) {
-            return of(key, value, Value.Double::new);
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, UUID value) {
-            return of(key, value, Value.UUID::new);
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, java.net.URI value) {
-            return of(key, value, Value.URI::new);
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, Instant value) {
-            return of(key, value, Value.Instant::new);
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, java.time.LocalDateTime value) {
-            return of(key, value, Value.LocalDateTime::new);
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, java.time.LocalDate value) {
-            return of(key, value, Value.LocalDate::new);
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, java.time.LocalTime value) {
-            return of(key, value, Value.LocalTime::new);
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, java.time.Duration value) {
-            return of(key, value, Value.Duration::new);
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, Throwable value) {
-            return of(key, value, Value.Throwable::new);
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, List<Value> value) {
-            return of(key, value, Value.List::new);
+            return new Entry(key, Value.of(value));
         }
 
         public static Entry of(String key, Map<String, Value> value) {
-            return of(key, value, Value.Map::new);
+            return new Entry(key, Value.of(value));
         }
 
         public static <T> Entry of(String key, T value, Function<T, Value> toValue) {
-            return new Entry(key, value == null ? Value.Null.INSTANCE : toValue.apply(value));
+            return new Entry(key, Value.of(value, toValue));
         }
 
         public static Entry of(String key, Supplier<Value> valueSupplier) {
-            var value = valueSupplier.get();
-            return new Entry(key, value == null ? Value.Null.INSTANCE : value);
+            return new Entry(key, Value.of(valueSupplier));
         }
 
         public static Entry ofLazy(String key, Supplier<Value> valueSupplier) {
-            return new Entry(key, new Value.Lazy(valueSupplier));
+            return new Entry(key, Value.ofLazy(valueSupplier));
         }
 
         public static <T> Entry ofLazy(String key, T value, Function<T, Value> toValue) {
-            return new Entry(key, new Value.Lazy(() -> {
-                var v = toValue.apply(value);
-                return v == null ? Value.Null.INSTANCE : v;
-            }));
+            return new Entry(key, Value.ofLazy(value, toValue));
         }
 
         /**
@@ -528,6 +526,130 @@ public sealed interface Log extends Iterable<Log.Entry> {
          * <p>Only supports a subset of "basic" data kinds</p>
          */
         public sealed interface Value {
+            static Value of(java.lang.String value) {
+                return of(value, Value.String::new);
+            }
+
+            static Value of(boolean value) {
+                return new Value.Boolean(value);
+            }
+
+            static Value of(byte value) {
+                return new Value.Byte(value);
+            }
+
+            static Value of(char value) {
+                return new Value.Character(value);
+            }
+
+            static Value of(java.lang.String key, short value) {
+                return new Value.Short(value);
+            }
+
+            static Value of(int value) {
+                return new Value.Integer(value);
+            }
+
+            static Value of(long value) {
+                return new Value.Long(value);
+            }
+
+            static Value of(float value) {
+                return new Value.Float(value);
+            }
+
+            static Value of(double value) {
+                return new Value.Double(value);
+            }
+
+            static Value of(java.lang.Boolean value) {
+                return of(value, Value.Boolean::new);
+            }
+
+            static Value of(java.lang.Byte value) {
+                return of(value, Value.Byte::new);
+            }
+
+            static Value of(java.lang.Character value) {
+                return of(value, Value.Character::new);
+            }
+
+            static Value of(java.lang.Short value) {
+                return of(value, Value.Short::new);
+            }
+
+            static Value of(java.lang.Integer value) {
+                return of(value, Value.Integer::new);
+            }
+
+            static Value of(java.lang.Long value) {
+                return of(value, Value.Long::new);
+            }
+
+            static Value of(java.lang.Double value) {
+                return of(value, Value.Double::new);
+            }
+
+            static Value of(java.util.UUID value) {
+                return of(value, Value.UUID::new);
+            }
+
+            static Value of(java.net.URI value) {
+                return of(value, Value.URI::new);
+            }
+
+            static Value of(java.time.Instant value) {
+                return of(value, Value.Instant::new);
+            }
+
+            static Value of(java.time.LocalDateTime value) {
+                return of(value, Value.LocalDateTime::new);
+            }
+
+            static Value of(java.time.LocalDate value) {
+                return of(value, Value.LocalDate::new);
+            }
+
+            static Value of(java.time.LocalTime value) {
+                return of(value, Value.LocalTime::new);
+            }
+
+            static Value of(java.time.Duration value) {
+                return of(value, Value.Duration::new);
+            }
+
+            static Value of(java.lang.Throwable value) {
+                return of(value, Value.Throwable::new);
+            }
+
+            static Value of(java.util.List<Value> value) {
+                return of(value, Value.List::new);
+            }
+
+            static Value of(java.util.Map<java.lang.String, Value> value) {
+                return of(value, Value.Map::new);
+            }
+
+            static <T> Value of(T value, Function<T, Value> toValue) {
+                return value == null ? Value.Null.INSTANCE : toValue.apply(value);
+            }
+
+            static Value of(Supplier<Value> valueSupplier) {
+                var value = valueSupplier.get();
+                return value == null ? Value.Null.INSTANCE : value;
+            }
+
+            static Value ofLazy(Supplier<Value> valueSupplier) {
+                return new Value.Lazy(valueSupplier);
+            }
+
+            static <T> Value ofLazy(T value, Function<T, Value> toValue) {
+                return new Value.Lazy(() -> {
+                    var v = toValue.apply(value);
+                    return v == null ? Value.Null.INSTANCE : v;
+                });
+            }
+
             /**
              * null
              */
